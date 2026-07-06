@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="dAI.ly Notes — Aplikasi daily notes berbasis kalender dengan agentic AI voice chat." />
+  <title>dAI.ly Notes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- Mobile sidebar overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+  <!-- Voice interim transcript -->
+  <div class="voice-interim" id="voiceInterim" aria-live="assertive"></div>
+
+  <!-- ── Dialog Pemilih Tanggal New Note ── -->
+  <dialog id="newNoteDialog" class="app-dialog">
+    <form method="dialog" class="dialog-form">
+      <h3>Pilih Tanggal Note</h3>
+      <div class="dialog-body">
+        <label for="newNoteDate">Pilih Tanggal:</label>
+        <input type="date" id="newNoteDate" required />
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary" id="closeNewNoteDialog">Batal</button>
+        <button type="submit" class="btn btn-primary">Buat Note</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ── Dialog Settings ── -->
+  <dialog id="settingsDialog" class="app-dialog">
+    <form method="dialog" class="dialog-form">
+      <h3>Pengaturan</h3>
+      <div class="dialog-body">
+        <div class="setting-item">
+          <span>Pilih Tema:</span>
+          <div class="theme-options">
+            <button type="button" class="theme-btn" id="themeLightBtn">
+              <span class="material-symbols-outlined">light_mode</span> Light
+            </button>
+            <button type="button" class="theme-btn" id="themeDarkBtn">
+              <span class="material-symbols-outlined">dark_mode</span> Dark
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button type="submit" class="btn btn-primary">Selesai</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="app-shell">
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar" id="sidebar" aria-label="Navigation and calendar">
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true">d</div>
+        <div>
+          <strong>dAI.ly Notes</strong>
+          <span>Your AI second brain</span>
+        </div>
+      </div>
+
+      <button class="primary-action" id="newNoteButton" type="button">
+        <span class="material-symbols-outlined" aria-hidden="true">add</span>
+        <span>New Note</span>
+      </button>
+
+      <nav class="main-nav" aria-label="Main navigation">
+        <button class="nav-item active" id="navCalendarBtn" type="button">
+          <span class="material-symbols-outlined" aria-hidden="true">calendar_today</span>Calendar
+        </button>
+        <button class="nav-item active" id="navAssistantToggleBtn" type="button">
+          <span class="material-symbols-outlined" aria-hidden="true">smart_toy</span>AI Assistant
+        </button>
+        <button class="nav-item" id="navSettingsBtn" type="button">
+          <span class="material-symbols-outlined" aria-hidden="true">settings</span>Settings
+        </button>
+      </nav>
+
+      <!-- Sidebar Mini Calendar (Tetap dipertahankan untuk navigasi cepat) -->
+      <div class="calendar-panel">
+        <div class="calendar-heading">
+          <button class="icon-button" id="prevMonth" type="button" aria-label="Bulan sebelumnya">
+            <span class="material-symbols-outlined">chevron_left</span>
+          </button>
+          <strong id="monthLabel"></strong>
+          <button class="icon-button" id="nextMonth" type="button" aria-label="Bulan berikutnya">
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+        <div class="weekday-row" aria-hidden="true">
+          <span>M</span><span>S</span><span>S</span><span>R</span><span>K</span><span>J</span><span>S</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="Kalender pilih tanggal"></div>
+      </div>
+
+      <!-- User Profile at bottom -->
+      <div class="sidebar-footer">
+        <div class="avatar" role="img" aria-label="User avatar">DN</div>
+        <div class="user-info">
+          <strong>User Notes</strong>
+          <span>Free Account</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Main Workspace ── -->
+    <div class="workspace">
+      <header class="topbar">
+        <button class="menu-button" id="sidebarToggle" type="button" aria-label="Buka sidebar" aria-expanded="false" aria-controls="sidebar">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+
+        <div class="topbar-left">
+          <!-- Dropdown Bulan untuk Grid Kalender Utama -->
+          <div class="main-month-selector">
+            <button id="mainMonthLabelBtn" class="main-month-btn">
+              <span id="mainMonthLabel">Oktober 2023</span>
+              <span class="material-symbols-outlined">keyboard_arrow_down</span>
+            </button>
+          </div>
+        </div>
+
+        <label class="search-field" for="searchInput">
+          <span class="material-symbols-outlined" aria-hidden="true">search</span>
+          <input id="searchInput" type="search" placeholder="Search notes..." />
+        </label>
+        <div class="topbar-actions">
+          <button class="icon-button" id="globalMicButton" type="button" aria-label="Voice command">
+            <span class="material-symbols-outlined">mic</span>
+          </button>
+          <button class="icon-button" id="themeToggle" type="button" aria-label="Toggle dark mode">
+            <span class="material-symbols-outlined">dark_mode</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="note-stage">
+        <!-- VIEW 1: Grid Kalender Besar (Default View) -->
+        <section class="main-view" id="calendarView">
+          <div class="calendar-header-days">
+            <span>SUN</span><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span>
+          </div>
+          <div class="main-calendar-grid" id="mainCalendarGrid">
+            <!-- Diisi lewat javascript -->
+          </div>
+        </section>
+
+        <!-- VIEW 2: Note Editor Canvas -->
+        <section class="note-canvas hidden" id="editorView" aria-label="Daily note editor">
+          <div class="note-navigation-header">
+            <button class="btn btn-back" id="backToCalendarBtn">
+              <span class="material-symbols-outlined">arrow_back</span> Kembali ke Kalender
+            </button>
+          </div>
+          <div class="note-headline">
+            <p class="eyebrow" id="weekLabel">Daily note</p>
+            <h1 id="dateTitle"></h1>
+            <div class="note-meta-line">
+              <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
+              <span id="dateSubtitle"></span>
+            </div>
+          </div>
+          <input
+            class="note-title-input"
+            id="noteTitle"
+            type="text"
+            placeholder="Judul singkat untuk hari ini"
+            aria-label="Judul note"
+          />
+          <textarea
+            id="noteBody"
+            class="note-body"
+            placeholder="Start writing your thoughts for today..."
+            aria-label="Isi note"
+          ></textarea>
+          <footer class="editor-footer">
+            <div class="save-status">
+              <span class="status-dot" id="saveDot"></span>
+              <span id="saveText">Auto saved</span>
+            </div>
+            <div class="note-stats">
+              <span id="wordCount">0 Words</span>
+              <span id="lastEdited">Ready</span>
+            </div>
+          </footer>
+        </section>
+      </main>
+    </div>
+
+    <!-- ── AI Assistant Panel ── -->
+    <aside class="assistant-panel" id="assistant" aria-label="AI Assistant">
+      <div class="assistant-header">
+        <div class="assistant-header-left">
+          <span class="material-symbols-outlined filled" aria-hidden="true">smart_toy</span>
+          <strong>AI Insights</strong>
+        </div>
+        <div class="assistant-header-right">
+          <button class="icon-button" id="ttsToggle" type="button" aria-label="Toggle text-to-speech" title="Text-to-Speech">
+            <span class="material-symbols-outlined">volume_up</span>
+          </button>
+          <span class="connection-pill state-ready" id="connectionStatus">Ready</span>
+        </div>
+      </div>
+
+      <div class="suggestion-block">
+        <span class="section-label">Contextual suggestions</span>
+        <div class="suggestions">
+          <button type="button" data-prompt="Ringkas note hari ini dan berikan 3 action items.">Summarize today</button>
+          <button type="button" data-prompt="Rapikan tulisan ini tanpa mengubah makna utamanya.">Rewrite this note</button>
+          <button type="button" data-prompt="Tambahkan daftar tugas dari note hari ini.">Create action items</button>
+          <button type="button" data-prompt="Apa saja yang perlu saya lakukan besok berdasarkan note ini?">Plan tomorrow</button>
+        </div>
+      </div>
+
+      <div class="chat-stream" id="chatStream" role="log" aria-live="polite" aria-label="Chat history"></div>
+
+      <form class="chat-composer" id="chatForm" novalidate>
+        <textarea
+          id="chatInput"
+          rows="1"
+          placeholder="Tanya AI... (Ctrl+Enter kirim)"
+          aria-label="Chat input"
+        ></textarea>
+        <button class="mic-button" id="micButton" type="button" aria-label="Voice chat">
+          <span class="material-symbols-outlined">mic</span>
+        </button>
+        <button class="send-button" id="sendButton" type="submit" aria-label="Kirim pesan">
+          <span class="material-symbols-outlined">arrow_upward</span>
+        </button>
+      </form>
+    </aside>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
