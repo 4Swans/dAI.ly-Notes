@@ -255,3 +255,6 @@ function loadEnv(filePath) {
     if (!process.env[key]) process.env[key] = value;
   });
 }
+
+// Untuk Vercel Serverless Function deployment
+module.exports = server;
